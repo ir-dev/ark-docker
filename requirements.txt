@@ -1,4 +1,0 @@
-Flask
-kaleido
-pandas
-plotly
