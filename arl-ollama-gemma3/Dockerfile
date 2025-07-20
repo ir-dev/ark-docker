@@ -1,0 +1,28 @@
+# Use the official Ollama base image
+FROM ollama/ollama:latest
+
+# Set environment variables (optional, adjust as needed)
+ENV OLLAMA_HOST=0.0.0.0:11434
+ENV OLLAMA_MODELS=/root/.ollama/models
+
+ENV DATA_FILE_PATH=./data/ark_play.db
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip python3-venv
+
+COPY . .
+
+#RUN python3 -m venv wsl_env
+
+#RUN /bin/bash -c "source ./wsl_env/bin/activate"
+
+#RUN ./wsl_env/bin/pip3 install --no-cache-dir -r requirements.txt
+
+# Expose the Ollama port
+EXPOSE 11434
+
+# Pull the Gemma 3 model when the container starts
+# Replace 'gemma3:latest' with a specific version like 'gemma3:4b' or 'gemma3:12b' if desired
+# CMD ["serve", "&", "ollama", "pull", "gemma3:latest", "&", "python", "app.py"]
