@@ -24,8 +24,8 @@ step 2: after the container is up, connect it over console & rune below 2 comman
 
 -- docker:
 > docker build -t ark-ollama-gemma3:latest .
-> docker run -d -p 5000:11434 --name ollama-gemm3 ark-ollama-gemma3:latest
+> docker run -d -p 5001:11434 --name ollama-gemm3 ark-ollama-gemma3:latest
 
 push to docker hub
-> docker tag ark-ollama-gemma3:latest immanuelraj/ark-rapid/ark-ollama-gemma3:latest
-> docker push immanuelraj/ark-rapid/ark-ollama-gemma3:latest
+> docker tag ark-ollama-gemma3:latest immanuelraj/ark-ollama-gemma3:latest
+> docker push immanuelraj/ark-ollama-gemma3:latest

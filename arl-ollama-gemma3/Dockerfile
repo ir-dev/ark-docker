@@ -1,28 +1,65 @@
-# Use the official Ollama base image
-FROM ollama/ollama:latest
+## Use the official Ollama base image
+#FROM ollama/ollama:latest
+#
+#RUN ollama pull gemma3:latest
+#
+#RUN ollama run gemma3
+#
+## Expose the Ollama port
+#EXPOSE 11434
 
-# Set environment variables (optional, adjust as needed)
-ENV OLLAMA_HOST=0.0.0.0:11434
-ENV OLLAMA_MODELS=/root/.ollama/models
+#FROM ubuntu:22.04
+#
+## Install dependencies
+#RUN apt-get update && apt-get install -y curl gnupg
+#
+## Add Ollama package source
+#RUN curl -fsSL https://ollama.com/install.sh | sh
+#
+## Pull model (can also be done at runtime)
+#RUN /bin/bash -c "source ~/.bashrc && ollama serve & sleep 5 && ollama pull gemma3:latest"
+#
+## Expose Ollama API port
+#EXPOSE 11434
+#
+## Start the Ollama server
+#CMD ["ollama", "serve"]
+#
 
-ENV DATA_FILE_PATH=./data/ark_play.db
+FROM ubuntu:22.04
 
-WORKDIR /app
-
+# Install dependencies
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip python3-venv
+    apt-get install -y curl && \
+    rm -rf /var/lib/apt/lists/*
 
-COPY . .
+# Install Ollama
+RUN curl -fsSL https://ollama.com/install.sh | sh
 
-#RUN python3 -m venv wsl_env
+# Add Ollama to PATH
+ENV PATH=$PATH:/usr/local/bin
 
-#RUN /bin/bash -c "source ./wsl_env/bin/activate"
+# Pre-download model (optional - can be done at runtime instead)
+#RUN ollama pull gemma3:latest && \
+#    ollama rm gemma3:latest  # Remove to save space, will redownload on first run
 
-#RUN ./wsl_env/bin/pip3 install --no-cache-dir -r requirements.txt
+# Create startup script
+RUN echo '#!/bin/bash\n\
+ollama serve &\n\
+sleep 5\n\
+if ! ollama list | grep -q gemma; then\n\
+  echo "Downloading Gemma model..."\n\
+  ollama pull gemma3:latest\n\
+fi\n\
+tail -f /dev/null' > /start.sh && \
+    chmod +x /start.sh
 
-# Expose the Ollama port
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:11434/api/tags || exit 1
+
+# Expose Ollama API port
 EXPOSE 11434
 
-# Pull the Gemma 3 model when the container starts
-# Replace 'gemma3:latest' with a specific version like 'gemma3:4b' or 'gemma3:12b' if desired
-# CMD ["serve", "&", "ollama", "pull", "gemma3:latest", "&", "python", "app.py"]
+# Start the container
+CMD ["/start.sh"]
