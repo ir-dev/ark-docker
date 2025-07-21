@@ -1,10 +1,14 @@
 > cd C:\Immi\Sample\python-report\rep-2-wsl
 
-set up env
-> python -m venv wsl_env
+set up env (windwos)
+> python -m venv v_env
+
+set up env (wsl)
+> wsl
+> python3 -m venv wsl_env
 
 activate the venv
-> wsl_env\Scripts\activate
+> v_env\Scripts\activate
 
 activate even on ubuntu
 > source wsl_env/bin/activate
@@ -13,6 +17,9 @@ pip install from requirement.txt
 > pip install -r requirements.txt
 
 > python app.py
+
+--WSL: to work the iamge genration - run below command
+> plotly_get_chrome
 
 -- wheel setup
 > pip install wheel
@@ -54,7 +61,8 @@ below setup in nginx
 --docker
 
 > docker build -t ark-plotly-app:latest .
-> docker run -d -p 80:8000 --name plotly-service ark-plotly-app:latest
+> docker run -d -p 80:5000 --name plotly-service ark-plotly-app:latest
+        - browse: http://localhost
 
 push to docker hub
 > docker tag ark-plotly-app:latest immanuelraj/ark-plotly-app:latest

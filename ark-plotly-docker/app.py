@@ -9,6 +9,8 @@ import random
 from datetime import datetime
 import tempfile
 import os
+import traceback
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -240,6 +242,182 @@ def gauge_report_wapp(wapp_reqid):
     )
 
     return serve_plotly_image(fig, base_filename=f"{wapp_reqid}.png", width=600, height=450, scale=1.5)
+
+@app.route('/gantt-report/<wapp_reqid>', methods=['POST'])
+def generate_gantt(wapp_reqid):
+    try:
+        data = request.get_json()
+
+        # Validate input
+        #if not isinstance(data, list):
+        #    return jsonify({"error": "Payload must be a list of task objects"}), 400
+
+        # Convert to DataFrame
+        df = pd.DataFrame(data['maintenances'])
+
+        # Parse datetimes
+        df['Start'] = pd.to_datetime(df['start'])
+        df['Finish'] = pd.to_datetime(df['end'])
+
+        # Basic error check
+        if df.empty or 'machine_name' not in df or 'reason' not in df:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Assign unique Y-axis based on machine name
+        df["Y"] = df["machine_name"]
+
+        # Create unique color for each reason
+        unique_reasons = df["reason"].unique()
+        color_palette = px.colors.qualitative.Plotly
+        color_map = {reason: color_palette[i % len(color_palette)] for i, reason in enumerate(unique_reasons)}
+
+        fig = go.Figure()
+
+        for _, row in df.iterrows():
+            fig.add_trace(go.Scatter(
+                x=[row["Start"], row["Finish"]],
+                y=[row["Y"], row["Y"]],
+                mode='lines',
+                line=dict(color=color_map.get(row["reason"], "gray"), width=20),
+                hoverinfo='text',
+                text=f"{row['reason']}: {row['Start']} → {row['Finish']}",
+                showlegend=False
+            ))
+
+        fig.update_layout(
+            title=data['title'],
+            xaxis=dict(
+                type='date',
+                title=data['x-title'],
+                tickformat='%Y-%m-%d\n%H:%M',
+                range=[
+                    df["Start"].min() - pd.Timedelta(hours=1),
+                    df["Finish"].max() + pd.Timedelta(hours=1)
+                ]
+            ),
+            yaxis=dict(
+                title=data['y-title'],
+                tickvals=df["Y"].unique(),
+                autorange='reversed'
+            ),
+            height=400 + len(df["Y"].unique()) * 30,
+            margin=dict(l=100, r=20, t=50, b=50)
+        )
+
+        # Output as PNG
+        #buffer = io.BytesIO()
+        #fig.write_image(buffer, format='png')
+        #buffer.seek(0)
+
+        #return send_file(buffer, mimetype='image/png', download_name='machine_gantt.png')
+        return serve_plotly_image(fig, base_filename=f"{wapp_reqid}.png", width=600, height=450, scale=1)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/db-report/<wapp_reqid>', methods=['POST'])
+def generate_dumbbell_image(wapp_reqid):
+    data = request.get_json()
+    # Convert to DataFrame
+    df = pd.DataFrame(data['data'])
+    df['date'] = pd.to_datetime(df['date']).dt.date
+    df['qty'] = pd.to_numeric(df['qty'])
+    
+    # Verify we have exactly two dates for comparison
+    dates = sorted(df['date'].unique(), reverse=True)[:2]
+    date1, date2 = dates[0], dates[1]
+
+    df = df[df['date'].isin([date1, date2])]
+    
+    # Pivot data correctly
+    pivot_df = df.pivot(index='machine_name', columns='date', values='qty')
+    
+    # Create figure
+    fig = go.Figure()
+    
+    # Add dumbbell lines
+    for machine in pivot_df.index:
+        fig.add_trace(go.Scatter(
+            x=[pivot_df.loc[machine, date1], pivot_df.loc[machine, date2]],
+            y=[machine, machine],
+            mode='lines',
+            line=dict(color='gray', width=2),
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+    
+    # Add markers for each date
+    colors = ['#636EFA', '#EF553B']  # Distinct colors for each date
+    
+    for i, date in enumerate([date1, date2]):
+        fig.add_trace(go.Scatter(
+            x=pivot_df[date],
+            y=pivot_df.index,
+            mode='markers',
+            marker=dict(size=12, color=colors[i]),
+            name=str(date),  # Date-only in legend
+            hovertemplate=(
+                "<b>Machine:</b> %{y}<br>"
+                "<b>Date:</b> " + str(date) + "<br>"
+                "<b>Quantity:</b> %{x}<extra></extra>"
+            )
+        ))
+    
+    # Customize layout
+    fig.update_layout(
+        title=f'{data["title"]}: {date1} vs {date2}',
+        xaxis_title=f'{data["x-title"]}',
+        yaxis_title=f'{data["y-title"]}',
+        plot_bgcolor='white',
+        legend_title_text='Date',
+        hovermode='closest'
+    )
+
+    return serve_plotly_image(fig, base_filename=f"{wapp_reqid}.png", width=600, height=450, scale=1)
+
+@app.route('/hb-report/<wapp_reqid>', methods=['POST'])
+def generate_horizontal_bar(wapp_reqid):
+    data = request.get_json()
+    # Convert to DataFrame
+    df = pd.DataFrame(data['data'])
+    df['date'] = pd.to_datetime(df['date']).dt.date
+    df['qty'] = pd.to_numeric(df['qty'])
+    
+    # Sort by quantity for better visualization
+    df = df.sort_values('qty', ascending=True)
+    
+    # Create horizontal bar chart
+    fig = px.bar(
+        df,
+        x='qty',
+        y='machine_name',
+        orientation='h',
+        color='date',
+        color_continuous_scale='Blues',
+        title=f'{data["title"]}',
+        labels={'qty': f'{data["x-title"]}', 'machine_name': f'{data["y-title"]}', 'date': 'Date'},
+        text_auto=True  # Show values on bars
+    )
+    
+    # Customize layout
+    fig.update_layout(
+        plot_bgcolor='white',
+        xaxis_title='Production Quantity',
+        yaxis_title='Machine',
+        coloraxis_showscale=False,  # Hide color scale
+        uniformtext_minsize=8,
+        uniformtext_mode='hide'
+    )
+    
+    # Adjust bar appearance
+    fig.update_traces(
+        textfont_size=12,
+        textposition='outside',
+        marker_line_color='rgb(8,48,107)',
+        marker_line_width=1.5
+    )
+    
+    return serve_plotly_image(fig, base_filename=f"{wapp_reqid}.png", height=450, scale=1)
 
 
 if __name__ == '__main__':
