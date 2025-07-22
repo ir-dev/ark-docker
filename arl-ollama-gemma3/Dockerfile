@@ -26,11 +26,11 @@ RUN useradd -m -d /home/ollama_user ollama_user && \
 USER ollama_user
 WORKDIR /home/ollama_user
 
-# Create minimal Flask app with COMPATIBLE versions
-RUN mkdir -p app && \
-    echo "from flask import Flask\napp = Flask(__name__)\n\n@app.route('/')\ndef health():\n    return 'OK', 200\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=8000)" > app/app.py && \
-    echo "flask==2.1.0\nwerkzeug==2.1.0" > app/requirements.txt && \
-    pip install --user -r app/requirements.txt
+# Copy local app folder (must contain app.py and requirements.txt)
+COPY --chown=ollama_user:ollama_user . .
+
+# Install Python dependencies
+RUN pip install --user -r requirements.txt
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
@@ -58,21 +58,20 @@ if ! ollama list | grep -q gemma; then\n\
     ollama pull gemma:2b\n\
 fi\n\
 \n\
-# Start Flask health check endpoint\n\
-echo "Starting health check endpoint..."\n\
-python -m flask run --app app/app.py --host=0.0.0.0 --port=8000 &\n\
+# Start Python application\n\
+echo "Starting Python application..."\n\
+python app.py &\n\
 \n\
 echo "Service is ready"\n\
 echo "Ollama API: http://localhost:11434"\n\
-echo "Health check: http://localhost:8000"\n\
+echo "Web app: http://localhost:5000"\n\
 \n\
 # Keep container running\n\
 tail -f /dev/null' > entrypoint.sh && \
     chmod +x entrypoint.sh
 
 # Expose ports
-EXPOSE 8000
-EXPOSE 11434
+EXPOSE 5000 11434
 
 # Start the service
 ENTRYPOINT ["./entrypoint.sh"]

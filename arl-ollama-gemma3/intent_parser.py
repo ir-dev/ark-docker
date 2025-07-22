@@ -60,7 +60,7 @@ User: "{user_input}"
     # )
 
     response = requests.post(
-        "https://ntt-container-app-i1-d.blacksky-614f829a.westeurope.azurecontainerapps.io/api/generate",
+        "http://localhost:11434/api/generate",
         json={
             "model": "gemma3",
             "prompt": prompt,
