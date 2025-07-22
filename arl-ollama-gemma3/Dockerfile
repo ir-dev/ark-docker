@@ -7,7 +7,7 @@ RUN apt-get update && \
     curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Ollama - PROPER METHOD
+# Install Ollama using official method
 RUN curl -fsSL https://ollama.com/install.sh | sh
 
 # Verify Ollama installation
@@ -26,10 +26,10 @@ RUN useradd -m -d /home/ollama_user ollama_user && \
 USER ollama_user
 WORKDIR /home/ollama_user
 
-# Create minimal Flask app for Azure health checks
+# Create minimal Flask app with COMPATIBLE versions
 RUN mkdir -p app && \
     echo "from flask import Flask\napp = Flask(__name__)\n\n@app.route('/')\ndef health():\n    return 'OK', 200\n\nif __name__ == '__main__':\n    app.run(host='0.0.0.0', port=8000)" > app/app.py && \
-    echo "flask==2.0.1" > app/requirements.txt && \
+    echo "flask==2.1.0\nwerkzeug==2.1.0" > app/requirements.txt && \
     pip install --user -r app/requirements.txt
 
 # Create startup script
