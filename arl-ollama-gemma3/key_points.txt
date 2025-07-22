@@ -23,8 +23,12 @@ step 2: after the container is up, connect it over console & rune below 2 comman
 > ollama run gemma3
 
 -- docker:
-> docker build -t ark-ollama-gemma3:latest .
-> docker run -d -p 5001:11434 --name ollama-gemm3 ark-ollama-gemma3:latest
+> docker build -t ark-az-ollama-gemma3:latest .
+> docker run -d -p 5001:11434 --name ollama-gemma3 ark-az-ollama-gemma3:latest 
+> docker run -d -p 5001:11434 --name ollama-gemm3 ark-az-ollama-gemma3:latest "ollama serve & sleep 5 && ollama rum gemma3"
+		-- add "serve" command override to start the server
+		-- then the CMD in docker file take over the pull
+> docker run -d -p 5001:11434 --name ollama-gemm3 --entrypoint /bin/bash ark-ollama-gemma3:latest -c "ollama serve && sleep 5 && ollama run gemma3"
 
 push to docker hub
 > docker tag ark-ollama-gemma3:latest immanuelraj/ark-ollama-gemma3:latest
