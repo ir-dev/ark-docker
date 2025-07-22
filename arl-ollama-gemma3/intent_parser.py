@@ -62,7 +62,7 @@ User: "{user_input}"
     response = requests.post(
         "http://localhost:11434/api/generate",
         json={
-            "model": "gemma3",
+            "model": "gemma2",
             "prompt": prompt,
             "stream": False
         }
@@ -79,5 +79,5 @@ User: "{user_input}"
 
     except Exception as e:
         print("❌ Error:", e)
-        print("📦 Raw output:", output_text)
+        print("📦 Raw output:", response)
         return None

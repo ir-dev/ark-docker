@@ -1,9 +1,10 @@
-﻿from flask import Flask, request, jsonify, render_template
+﻿from flask import Flask, request, Response, jsonify, render_template
 from intent_parser import llama_intent_parser
 from db_utils import get_trending_products
 import os
 
 app = Flask(__name__)
+
 
 @app.route('/')
 def index():
