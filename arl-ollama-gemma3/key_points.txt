@@ -1,0 +1,39 @@
+
+> wsl
+> cd  cd /mnt/c/Immi/Personal/git_hub/ir-dev/ark-docker/arl-ollama-gemma3
+
+install
+> apt install python3.10-venv
+
+set up env
+> python3 -m venv wsl_env
+
+activate the venv (ubuntu)
+> source wsl_env/bin/activate
+
+> python3 -m pip install -r requirements.txt
+
+> python3 app.py
+
+--- azure conntainer service - 
+step 1: load below docker image thru env: ollama/ollama:latest
+
+step 2: after the container is up, connect it over console & rune below 2 commands
+> ollama pull gemma3:latest
+> ollama run gemma3
+
+-- docker:
+working cmd local -
+> docker build -t ark-az-ollama-gemma3:latest .
+>  docker run -d -p 5001:11434 -p 5002:8000 --name ollama-gemma3 ark-az-ollama-gemma3:latest
+
+--bkup cmds
+> docker run -d -p 5001:11434 --name ollama-gemma3 ark-az-ollama-gemma3:latest 
+> docker run -d -p 5001:11434 --name ollama-gemm3 ark-az-ollama-gemma3:latest "ollama serve & sleep 5 && ollama rum gemma3"
+		-- add "serve" command override to start the server
+		-- then the CMD in docker file take over the pull
+> docker run -d -p 5001:11434 --name ollama-gemm3 --entrypoint /bin/bash ark-ollama-gemma3:latest -c "ollama serve && sleep 5 && ollama run gemma3"
+
+push to docker hub
+> docker tag ark-ollama-gemma3:latest immanuelraj/ark-ollama-gemma3:latest
+> docker push immanuelraj/ark-ollama-gemma3:latest
